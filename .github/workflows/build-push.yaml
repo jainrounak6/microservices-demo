@@ -50,7 +50,7 @@ jobs:
       - name: Push latest images to DockerHub
         timeout-minutes: 20
         run: |
-          skaffold config set --global local-cluster false
+          # skaffold config set --global local-cluster false
           skaffold build --default-repo=docker.io/$DOCKERHUB_USERNAME --tag=$GITHUB_SHA
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
