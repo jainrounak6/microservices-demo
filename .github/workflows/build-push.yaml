@@ -93,52 +93,40 @@ jobs:
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     runs-on: ubuntu-latest
     needs: build
+    strategy:
+      matrix:
+        image:
+          - "frontend"
+          - "adservice"
+          - "cartservice"
+          - "emailservice"
+          - "paymentservice"
+          - "checkoutservice"
+          - "currencyservice"
+          - "shippingservice"
+          - "loadgenerator"
+          - "productcatalogservice"
+          - "recommendationservice"
     steps:
       # Run Trivy docker image scan
-      # - name: Run Trivy image vulnerability scanner
-      #   uses: aquasecurity/trivy-action@master
-      #   with:
-      #     # image-ref: 'jainrounak6/frontend:${{ github.sha }}'
-      #     image-ref: 'jainrounak6/frontend:bbcc5d29a47eb15e48ce2aa7e31ebbea60771a60'
-      #     format: 'sarif'
-      #     output: 'trivy-results.sarif'
-
-      # - name: Scan Docker images with Trivy
-      #   run: |
-      #     for image in ${{ needs.push-deploy.outputs.images }}; do
-      #       trivy image -o trivy-results.sarif --exit-code 1 --no-progress "$image"
-      #     done
-
-      - name: Set up Trivy
-        run: |
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.48.2/trivy_0.48.2_Linux-64bit.deb
-          sudo dpkg -i trivy_0.48.2_Linux-64bit.deb
-          trivy --version
-
       - name: Run Trivy image vulnerability scanner
-        run: |
-          # Define the list of image names
-          images=("loadgenerator" "adservice" "frontend" "cartservice" "paymentservice" "checkoutservice" "emailservice" "currencyservice" "recommendationservice" "shippingservice" "productcatalogservice")
-
-          # Initialize an empty SARIF file
-          echo '{"runs": []}' > trivy-results.sarif
-
-          # Iterate through each image, run Trivy scan, and append the results to the SARIF file
-          for image in "${images[@]}"; do
-            trivy image -f sarif --no-progress "$DOCKERHUB_USERNAME/$image:$TEMP_SHA" >> trivy-results.sarif
-          # Add a separator between individual SARIF results
-          echo -e "\n\n" >> trivy-results.sarif
-          done
+        id: trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "$DOCKERHUB_USERNAME/${{ matrix.image }}:$TEMP_SHA"
+          format: "sarif"
+          output: "trivy-${{ matrix.image }}.sarif"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          security-checks: "vuln"
         env:
           TEMP_SHA: bbcc5d29a47eb15e48ce2aa7e31ebbea60771a60
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
-      - name: Debug SARIF File Content
-        run: |
-          cat trivy-results.sarif
-
       # Upload image report to GitHub Security
-      - name: Upload Trivy image scan results to GitHub Security tab
+      - name: Upload Trivy image scan results
+        id: upload-results
         uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: "trivy-results.sarif"
+          category: "trivy-${{ matrix.image }}"
+          sarif_file: "trivy-${{ matrix.image }}.sarif"
