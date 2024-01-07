@@ -1,12 +1,12 @@
-# Development Guide 
+# Development Guide
 
-This doc explains how to build and run the Online Boutique source code locally using the `skaffold` command-line tool.  
+This doc explains how to build and run the Online Boutique source code locally using the `skaffold` command-line tool.
 
 ## Prerequisites
 
 - [Docker for Desktop](https://www.docker.com/products/docker-desktop)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) (can be installed via `gcloud components install kubectl` for Option 1 - GKE)
-- [skaffold **2.0.2+**](https://skaffold.dev/docs/install/) (latest version recommended), a tool that builds and deploys Docker images in bulk. 
+- [skaffold **2.0.2+**](https://skaffold.dev/docs/install/) (latest version recommended), a tool that builds and deploys Docker images in bulk.
 - Clone the repository.
     ```sh
     git clone https://github.com/GoogleCloudPlatform/microservices-demo
@@ -19,7 +19,7 @@ This doc explains how to build and run the Online Boutique source code locally u
 ## Option 1: Google Kubernetes Engine (GKE)
 
 > 💡 Recommended if you're using Google Cloud and want to try it on
-> a realistic cluster. **Note**: If your cluster has Workload Identity enabled, 
+> a realistic cluster. **Note**: If your cluster has Workload Identity enabled,
 > [see these instructions](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable)
 
 1.  Create a Google Kubernetes Engine cluster and make sure `kubectl` is pointing
@@ -72,7 +72,7 @@ This doc explains how to build and run the Online Boutique source code locally u
 
 5.  Navigate to `http://EXTERNAL-IP` to access the web frontend.
 
-## Option 2 - Local Cluster 
+## Option 2 - Local Cluster
 
 1. Launch a local Kubernetes cluster with one of the following tools:
 
@@ -100,8 +100,10 @@ This doc explains how to build and run the Online Boutique source code locally u
 2. Run `kubectl get nodes` to verify you're connected to the respective control plane.
 
 3. Run `skaffold run` (first time will be slow, it can take ~20 minutes).
-   This will build and deploy the application. If you need to rebuild the images
-   automatically as you refactor the code, run `skaffold dev` command.
+   This will build and deploy the application.
+   If you need to rebuild the images automatically as you refactor the code, or if you want to run for development environment then run `skaffold dev` command.
+
+   For additional information related to skaffold check official documentation [here](https://skaffold.dev/docs/).
 
 4. Run `kubectl get pods` to verify the Pods are ready and running.
 
