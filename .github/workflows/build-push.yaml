@@ -46,16 +46,19 @@ jobs:
           kubectl version --client
           skaffold version
 
-      - uses: actions/checkout@v4
-      - name: Push latest images to DockerHub
-        timeout-minutes: 20
-        run: |
-          # skaffold config set --global local-cluster false
-          skaffold build --default-repo=docker.io/$DOCKERHUB_USERNAME --tag=$GITHUB_SHA
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      # Checkout Repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  test:
+      # - name: Push latest images to DockerHub
+      #   timeout-minutes: 20
+      #   run: |
+      #     # skaffold config set --global local-cluster false
+      #     skaffold build --default-repo=docker.io/$DOCKERHUB_USERNAME --tag=$GITHUB_SHA
+      #   env:
+      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+  test_source:
     permissions:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
@@ -63,7 +66,29 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      # Run scan on docker image
+      # Run Trivy fs scan
+      - name: Run Trivy vulnerability scanner for fs
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+
+      # Upload fs report to GitHub Security
+      - name: Upload Trivy rootfs scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
+
+  test_image:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # Run Trivy docker image scan
       - name: Run Trivy image vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -71,25 +96,11 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      # Run scan on docker image
-      - name: Run Trivy vulnerability scanner with rootfs command
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          format: 'sarif'
-          output: 'trivy-fs-results.sarif'
-
       # - name: Scan Docker images with Trivy
       #   run: |
       #     for image in ${{ needs.push-deploy.outputs.images }}; do
       #       trivy image -o trivy-results.sarif --exit-code 1 --no-progress "$image"
       #     done
-
-      # Upload fs report to GitHub Security
-      - name: Upload Trivy rootfs scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-fs-results.sarif'
 
       # Upload image report to GitHub Security
       - name: Upload Trivy image scan results to GitHub Security tab
