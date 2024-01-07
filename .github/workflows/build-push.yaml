@@ -109,6 +109,12 @@ jobs:
       #       trivy image -o trivy-results.sarif --exit-code 1 --no-progress "$image"
       #     done
 
+      - name: Set up Trivy
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.48.2/trivy_0.48.2_Linux-64bit.deb
+          sudo dpkg -i trivy_0.48.2_Linux-64bit.deb
+          trivy --version
+
       - name: Run Trivy image vulnerability scanner
         run: |
           # Define the list of image names
