@@ -22,6 +22,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Checkout Repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@v3
 
@@ -46,10 +50,6 @@ jobs:
       #     kubectl version --client
       #     skaffold version
 
-      # Checkout Repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       # - name: Push latest images to DockerHub
       #   timeout-minutes: 20
       #   run: |
@@ -58,74 +58,99 @@ jobs:
       #   env:
       #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
-  # test_source:
-  #   permissions:
-  #     contents: read # for actions/checkout to fetch code
-  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     # Checkout Repository
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  depcheck_test:
+    runs-on: ubuntu-latest
+    name: depecheck_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build project with Maven
+        run: mvn clean install
+      - name: Depcheck
+        uses: dependency-check/Dependency-Check_Action@main
+        id: Depcheck
+        with:
+          project: 'test'
+          path: '.'
+          format: 'HTML'
+          out: 'reports' # this is the default, no need to specify unless you wish to override it
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+           name: Depcheck report
+           path: ${{github.workspace}}/reports
 
-  #     # Run Trivy fs scan
-  #     - name: Run Trivy vulnerability scanner for fs
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         scan-ref: .
-  #         scan-type: 'fs'
-  #         format: 'sarif'
-  #         scanners: vuln,secret,config
-  #         output: 'trivy-fs-results.sarif'
-
-  #     # Upload fs report to GitHub Security
-  #     - name: Upload Trivy rootfs scan results to GitHub Security tab
-  #       uses: github/codeql-action/upload-sarif@v2
-  #       with:
-  #         sarif_file: 'trivy-fs-results.sarif'
-
-  trivy_image_scan:
+  trivy_scan:
     permissions:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     runs-on: ubuntu-latest
     needs: build
-    strategy:
-      matrix:
-        image:
-          - "frontend"
-          - "adservice"
-          - "cartservice"
-          - "emailservice"
-          - "paymentservice"
-          - "checkoutservice"
-          - "currencyservice"
-          - "shippingservice"
-          - "loadgenerator"
-          - "productcatalogservice"
-          - "recommendationservice"
     steps:
-      # Run Trivy docker image scan
-      - name: Run Trivy image vulnerability scanner
-        id: trivy
+      # Checkout Repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Run Trivy fs scan
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ env.TEMP_SHA }}
-          format: "sarif"
-          output: "trivy-${{ matrix.image }}.sarif"
-          ignore-unfixed: true
-          vuln-type: "os,library"
-          security-checks: "vuln"
-        env:
-          TEMP_SHA: bbcc5d29a47eb15e48ce2aa7e31ebbea60771a60
+          scan-ref: .
+          scan-type: 'fs'
+          format: 'sarif'
+          scanners: vuln,secret,config
+          output: 'trivy-fs-results.sarif'
 
-      # Upload image report to GitHub Security
-      - name: Upload Trivy image scan results
-        id: upload-results
+      # Upload fs report to GitHub Security
+      - name: Upload Trivy rootfs scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         with:
-          category: "trivy-${{ matrix.image }}"
-          sarif_file: "trivy-${{ matrix.image }}.sarif"
+          sarif_file: 'trivy-fs-results.sarif'
+
+  # trivy_image_scan:
+  #   permissions:
+  #     contents: read # for actions/checkout to fetch code
+  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   strategy:
+  #     matrix:
+  #       image:
+  #         - "frontend"
+  #         - "adservice"
+  #         - "cartservice"
+  #         - "emailservice"
+  #         - "paymentservice"
+  #         - "checkoutservice"
+  #         - "currencyservice"
+  #         - "shippingservice"
+  #         - "loadgenerator"
+  #         - "productcatalogservice"
+  #         - "recommendationservice"
+  #   steps:
+  #     # Run Trivy docker image scan
+  #     - name: Run Trivy image vulnerability scanner
+  #       id: trivy
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ env.TEMP_SHA }} #TO DO Short SHA
+  #         format: "sarif"
+  #         output: "trivy-${{ matrix.image }}.sarif"
+  #         ignore-unfixed: true
+  #         vuln-type: "os,library"
+  #         security-checks: "vuln"
+  #       env:
+          # TEMP_SHA: bbcc5d29a47eb15e48ce2aa7e31ebbea60771a60
+
+  #     # Upload image report to GitHub Security
+  #     - name: Upload Trivy image scan results
+  #       id: upload-results
+  #       uses: github/codeql-action/upload-sarif@v2
+  #       with:
+  #         category: "trivy-${{ matrix.image }}"
+  #         sarif_file: "trivy-${{ matrix.image }}.sarif"

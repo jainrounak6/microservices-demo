@@ -16,5 +16,3 @@ for image in "${images[@]}"; do
   # Add a separator between individual SARIF results
   echo -e "\n\n" >> trivy-results.sarif
 done
-
-gh api -X POST -F "file=@trivy-results.sarif" -F "name=Trivy Scan Results" repos/:owner/:repo/code-scanning/sarifs
