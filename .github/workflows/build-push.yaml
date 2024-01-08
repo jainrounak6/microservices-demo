@@ -65,14 +65,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Depcheck
+      - name: Depcheck scan
         uses: dependency-check/Dependency-Check_Action@main
         id: Depcheck
         with:
           project: 'microserice-demo'
           path: '.'
           format: 'SARIF'
-          out: 'reports' # this is the default, no need to specify unless you wish to override it
+          out: '.' # this is the default, no need to specify unless you wish to override it
           # args: >
           #   --failOnCVSS 7
           #   --enableRetired
@@ -84,33 +84,33 @@ jobs:
           category: 'Depcheck'
           sarif_file: 'dependency-check-report.sarif'
 
-  trivy_scan:
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      # Checkout Repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # trivy_scan:
+  #   permissions:
+  #     contents: read # for actions/checkout to fetch code
+  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     # Checkout Repository
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      # Run Trivy fs scan
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-ref: .
-          scan-type: 'fs'
-          format: 'sarif'
-          scanners: vuln,secret,config
-          output: 'trivy-fs-results.sarif'
+  #     # Run Trivy fs scan
+  #     - name: Run Trivy vulnerability scanner
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-ref: .
+  #         scan-type: 'fs'
+  #         format: 'sarif'
+  #         scanners: vuln,secret,config
+  #         output: 'trivy-fs-results.sarif'
 
-      # Upload fs report to GitHub Security
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-fs-results.sarif'
+  #     # Upload fs report to GitHub Security
+  #     - name: Upload Trivy scan results to GitHub Security tab
+  #       uses: github/codeql-action/upload-sarif@v2
+  #       with:
+  #         sarif_file: 'trivy-fs-results.sarif'
 
   # trivy_image_scan:
   #   permissions:
