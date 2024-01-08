@@ -26,37 +26,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      # # Setup Docker Builder
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3
+      # Setup Docker Builder
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # # Login to Docker Hub
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     ecr: false
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Login to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          ecr: false
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # # Install Dependencies
-      # - uses: yokawasa/action-setup-kube-tools@v0.9.2
-      #   with:
-      #     kubectl: '1.29.0'
-      #     skaffold: '2.9.0'
-      # - run: |
-      #     kubectl version --client
-      #     skaffold version
+      # Install Dependencies
+      - uses: yokawasa/action-setup-kube-tools@v0.9.2
+        with:
+          kubectl: '1.29.0'
+          skaffold: '2.9.0'
+      - run: |
+          kubectl version --client
+          skaffold version
 
-      # - name: Push latest images to DockerHub
-      #   timeout-minutes: 20
-      #   run: |
-      #     # skaffold config set --global local-cluster false
-      #     skaffold build --default-repo=docker.io/$DOCKERHUB_USERNAME --tag=$GITHUB_SHA
-      #   env:
-      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Push latest images to DockerHub
+        timeout-minutes: 20
+        run: |
+          # skaffold config set --global local-cluster false
+          skaffold build --default-repo=docker.io/$DOCKERHUB_USERNAME --tag=$GITHUB_SHA
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
   depcheck_test:
     runs-on: ubuntu-latest
@@ -84,74 +84,72 @@ jobs:
           category: 'Depcheck'
           sarif_file: 'dependency-check-report.sarif'
 
-  # trivy_scan:
-  #   permissions:
-  #     contents: read # for actions/checkout to fetch code
-  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     # Checkout Repository
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+  trivy_scan:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      # Checkout Repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     # Run Trivy fs scan
-  #     - name: Run Trivy vulnerability scanner
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         scan-ref: .
-  #         scan-type: 'fs'
-  #         format: 'sarif'
-  #         scanners: vuln,secret,config
-  #         output: 'trivy-fs-results.sarif'
+      # Run Trivy fs scan
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-ref: .
+          scan-type: 'fs'
+          format: 'sarif'
+          scanners: vuln,secret,config
+          output: 'trivy-fs-results.sarif'
 
-  #     # Upload fs report to GitHub Security
-  #     - name: Upload Trivy scan results to GitHub Security tab
-  #       uses: github/codeql-action/upload-sarif@v2
-  #       with:
-  #         sarif_file: 'trivy-fs-results.sarif'
+      # Upload fs report to GitHub Security
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-fs-results.sarif'
 
-  # trivy_image_scan:
-  #   permissions:
-  #     contents: read # for actions/checkout to fetch code
-  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   strategy:
-  #     matrix:
-  #       image:
-  #         - "frontend"
-  #         - "adservice"
-  #         - "cartservice"
-  #         - "emailservice"
-  #         - "paymentservice"
-  #         - "checkoutservice"
-  #         - "currencyservice"
-  #         - "shippingservice"
-  #         - "loadgenerator"
-  #         - "productcatalogservice"
-  #         - "recommendationservice"
-  #   steps:
-  #     # Run Trivy docker image scan
-  #     - name: Run Trivy image vulnerability scanner
-  #       id: trivy
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ env.TEMP_SHA }} #TO DO Short SHA
-  #         format: "sarif"
-  #         output: "trivy-${{ matrix.image }}.sarif"
-  #         ignore-unfixed: true
-  #         vuln-type: "os,library"
-  #         security-checks: "vuln"
-  #       env:
-          # TEMP_SHA: bbcc5d29a47eb15e48ce2aa7e31ebbea60771a60
+  trivy_image_scan:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        image:
+          - "frontend"
+          - "adservice"
+          - "cartservice"
+          - "emailservice"
+          - "paymentservice"
+          - "checkoutservice"
+          - "currencyservice"
+          - "shippingservice"
+          - "loadgenerator"
+          - "productcatalogservice"
+          - "recommendationservice"
+    steps:
+      # Run Trivy docker image scan
+      - name: Run Trivy image vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:${{ GITHUB_SHA }} #TO DO Short SHA
+          format: "sarif"
+          output: "trivy-${{ matrix.image }}.sarif"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          security-checks: "vuln"
 
-  #     # Upload image report to GitHub Security
-  #     - name: Upload Trivy image scan results
-  #       id: upload-results
-  #       uses: github/codeql-action/upload-sarif@v2
-  #       with:
-  #         category: "trivy-${{ matrix.image }}"
-  #         sarif_file: "trivy-${{ matrix.image }}.sarif"
+      # Upload image report to GitHub Security
+      - name: Upload Trivy image scan results
+        id: upload-results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          category: "trivy-${{ matrix.image }}"
+          sarif_file: "trivy-${{ matrix.image }}.sarif"
