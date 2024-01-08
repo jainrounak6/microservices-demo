@@ -145,6 +145,8 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           security-checks: "vuln"
+        env:
+          GITHUB_SHA: $GITHUB_SHA
 
       # Upload image report to GitHub Security
       - name: Upload Trivy image scan results
