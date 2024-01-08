@@ -62,24 +62,27 @@ jobs:
     runs-on: ubuntu-latest
     name: depecheck_test
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Depcheck
         uses: dependency-check/Dependency-Check_Action@main
         id: Depcheck
         with:
           project: 'microserice-demo'
           path: '.'
-          format: 'ALL'
+          format: 'SARIF'
           out: 'reports' # this is the default, no need to specify unless you wish to override it
           # args: >
           #   --failOnCVSS 7
           #   --enableRetired
-      - name: Upload Test results
-        uses: actions/upload-artifact@master
+
+      # Upload dep check report to GitHub Security
+      - name: Upload Depcheck report to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
         with:
-           name: Depcheck report
-           path: ${{github.workspace}}/reports
+          category: 'Depcheck'
+          sarif_file: 'dependency-check-report.sarif'
 
   trivy_scan:
     permissions:
@@ -104,7 +107,7 @@ jobs:
           output: 'trivy-fs-results.sarif'
 
       # Upload fs report to GitHub Security
-      - name: Upload Trivy rootfs scan results to GitHub Security tab
+      - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'trivy-fs-results.sarif'
